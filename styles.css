@@ -1,0 +1,19 @@
+body {
+  background-color: #ffe500;
+  font-family: 'Bungee Shade', cursive;
+  text-align: center;
+}
+h1 {
+  color: #ff00f2;
+}
+h2 {
+  color: black;
+}
+a {
+  font-family: 'Bungee Inline', cursive;
+  color: #ff00f2;
+  text-decoration: none;
+}
+a:hover {
+ color: blue;
+}
