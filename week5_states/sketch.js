@@ -1,128 +1,163 @@
 // Eva Serrano Reisner
-// 02/19/18
-// changed how the arrow comes to the mouse so that it slows gradually.
-// tried to do something with arrival, somewhat successful?
+// 02/26/18
+// derek the chicken game.
+// based of something that i made in gamemaker in high school
+// and then attempted to transfer to processing last semester.
+// sprites are mine, backgrounds are from BitDay wallpaper
 
+let sceneStates = Object.freeze({
+  TITLE: 0,
+  TUTORIAL: 1,
+  GAME: 2,
+  WIN: 3,
+  LOSE: 4
+});
 
-let v;
+let currentState = sceneStates.INTRO;
+
+//image variables
+let one;
+let two;
+let three;
+let six;
+let seven;
+let derekSprite;
+let eggSprite;
+let weaselSprite;
+
+let keyOn = false;
+let tutorialTimer;
+
+let gameTimer;
+let gameTimePressed;
+const timeForGame = 5000;
 
 function setup() {
-  createCanvas(800, 800);
-  v = new Vehicle(createVector(width/2, height/2));
+  createCanvas(1920,1080);
+  one = loadImage("data/1.png");
+  two = loadImage("data/2.png");
+  three = loadImage("data/3.png");
+  six = loadImage("data/6.png");
+  seven = loadImage("data/7.png");
+  derekSprite = loadImage("data/derek.png");
+  eggSprite = loadImage("data/eggu.png");
+  weaselSprite = loadImage("data/weasel.png");
 }
 
 function draw() {
-  background(255);
-
-  // draw circle at mouse position
-  fill(200);
-  stroke(0);
-  strokeWeight(2);
-  ellipse(mouseX, mouseY, 48, 48);
-
-  // update and display vehicle
-  v.seek(createVector(mouseX, mouseY));
-  v.arrive(createVector(mouseX, mouseY));
-  v.update();
-  v.display();
+  drawScene();
+  checkTransition();
+  keyOn = false;
 }
 
-// define vehicle class
-class Vehicle {
-  constructor(position) {
-    // this is where we define our properites
-    this.position = position;
-    this.velocity = createVector(0,0);
-    this.acceleration = createVector(0,0);
-    // r is our size
-    this.r = 10;
-    this.color = color(255, 0, 0);
-
-    this.maxSpeed = 4;
-    this.maxForce = 2;
-   }
-
-  // seek target
-  seek(target) {
-    // note that this.position is a vector
-    // note that target is a vector
-    // find the desired vector of travel
-    // by subtracting position from target
-    let desired = target.sub(this.position);
-
-    // desired.normalize();
-
-    desired.mult(0.05);
-
-    // find the 'steering' vector
-    let steer = desired.sub(this.velocity);
-
-    this.applyForce(steer);
+function drawScene() {
+  switch(currentState) {
+    case sceneStates.INTRO:
+      background(100 + sin(frameCount * 0.05) * 50, 100 + sin(frameCount * 0.06) * 50, 100 + sin(frameCount * 0.07) * 50);
+      fill(255);
+      textSize(80);
+      textAlign(CENTER, CENTER);
+      text("welcome to the\nPUSH BUTTON\n\"game\"", width/2, height/2);
+      break;
+    case sceneStates.TUTORIAL:
+      background(150, 200, 200);
+      fill(0);
+      textSize(48);
+      textAlign(CENTER, CENTER);
+      text("HOW TO PLAY...", width/2, height/2 - 100);
+      textSize(32);
+      text("try to hit a key exactly when\nthe counter hits zero", width/2, height/2);
+      textSize(24);
+      text("notice that this screen progresses\nwhen hitting a key only after a\ntimer has been completed", width/2, height/2 + 120);
+      if(millis() > tutorialTimer + 3000){ // 3000 is 3 seconds; that's the time for the tutorial to appear
+        text("OK now you can hit a key", width/2, height/2 + 190);
+      }
+      break;
+    case sceneStates.GAME:
+      let timeLeft = (timeForGame - (millis() - gameTimer))/1000;
+      background(map(timeLeft, 5, 0, 255, 0), 250, 150);
+      fill(0);
+      textSize(164);
+      textAlign(CENTER, CENTER);
+      text(timeLeft.toFixed(1), width/2, height/2);
+      break;
+    case sceneStates.WIN:
+      background(127 + sin(frameCount + 0.05) * 127, 127 + sin(frameCount + 0.06) * 127, 127 + sin(frameCount + 0.07) * 127);
+      fill(0);
+      textSize(64);
+      textAlign(CENTER, CENTER);
+      text("YOU WIN!\nresult:" + gameTimePressed, width/2, height/2-70);
+      textSize(24);
+      text("Press any key to return to title", width/2, height - 100);
+      break;
+    case sceneStates.LOSE:
+      background(10);
+      fill(255);
+      textSize(64);
+      textAlign(CENTER, CENTER);
+      text("You lose...\nresult: " + gameTimePressed, width/2, height/2);
+      textSize(24);
+      text("Press any key to try again", width/2, height - 100);
   }
-  arrive(target) {
-    let desired = target.sub(this.position);
-    let d = desired.mag();
-    desired.normalize();
-    if (d<100) {
-      let m = map(d, 0, 100, 0, this.maxSpeed);
-      desired.mult(m);
-    }else{
-      desired.mult(this.maxSpeed);
-    }
+}
 
-    let steer = desired.sub(this.velocity);
-    steer.limit(this.maxForce);
-    this.applyForce(steer);
+function checkTransition() {
+  switch (currentState) {
+    case sceneStates.INTRO:
+      if(keyOn) {
+        currentState++;
+        setupScene();
+      }
+      break;
+    case sceneStates.TUTORIAL:
+      if(millis() > tutorialTimer + 3000) {
+        if (keyOn) {
+          currentState++;
+          setupScene(currentState);
+        }
+      }
+      break;
+    case sceneStates.GAME:
+      if(keyOn) {
+        gameTimePressed = (timeForGame - (millis() - gameTimer))/1000;
+        gameTimePressed = gameTimePressed.toFixed(3);
+
+        if(gameTimePressed <0.1 && gameTimePressed > -0.1) {
+          currentState = sceneStates.WIN;
+        } else {
+          currentState = sceneStates.LOSE;
+        }
+        setupScene();
+      }
+      break;
+    case sceneStates.WIN:
+      if(keyOn) {
+        currentState = sceneStates.INTRO;
+        setupScene();
+      }
+      break;
+    case sceneStates.LOSE:
+      if(keyOn) {
+        currentState = sceneStates.GAME;
+        setupScene();
+      }
+      break;
   }
+}
 
-  // applyForce
-  // this is how we move the car in a given direction
-  // with a given magnitude (vector)
-  applyForce(force) {
-    this.acceleration.add(force);
-    // not that we can do more physics simulation here
-    // eg give the car mass and calculate the acceleration
-    // delta as A = F / M
+function setupScene() {
+  switch(currentState) {
+    case sceneStates.INTRO:
+      break;
+    case sceneStates.TUTORIAL:
+      tutorialTimer = millis();
+      break;
+    case sceneStates.GAME:
+      gameTimer = millis();
+      break;
   }
+}
 
-  // update
-  // "run simmulation"
-  // update properties based on changes since last update
-  update() {
-    this.velocity.add(this.acceleration);
-    // update position
-    this.position.add(this.velocity);
-
-    // reset acceleration
-    this.acceleration.mult(0);
-  }
-
-  // display
-  display() {
-    // draw a triangle rotated in the direction of velocity
-
-    // get the angle from velocity
-    let theta = this.velocity.heading() + HALF_PI;
-
-    // set drawing properties
-    fill(this.color);
-    stroke(0);
-    strokeWeight(1);
-
-    // move center of the canvas to the vehicle's position
-    translate(this.position.x, this.position.y);
-    // rotate the canvas to the heading we calculated above
-    rotate(theta);
-
-    // draw the vehicle shape
-    // can also use triangle
-    beginShape();
-    vertex(0, -this.r*2);
-    vertex(-this.r, this.r*2);
-    vertex(this.r, this.r*2);
-    endShape(CLOSE);
-
-    // end transforms
-    resetMatrix();
-  }
+function keyPressed() {
+  keyOn = true;
 }
